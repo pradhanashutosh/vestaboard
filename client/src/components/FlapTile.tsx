@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { colorTileHex } from "@vestaboard/shared";
 import { computeFlapQueue } from "../lib/flapQueue";
 
 interface FlapTileProps {
@@ -90,26 +91,32 @@ function TileHalf({
   flap?: boolean;
   flipped?: boolean;
 }) {
+  const color = colorTileHex(char);
+
   return (
     <div
       className={[
-        "absolute inset-x-0 flex items-center justify-center overflow-hidden bg-board-tile",
+        "absolute inset-x-0 flex items-center justify-center overflow-hidden",
+        color ? "" : "bg-board-tile",
         half === "top" ? "top-0 h-1/2 rounded-t-[3px]" : "bottom-0 h-1/2 rounded-b-[3px]",
         flap ? "shadow-[0_2px_4px_rgba(0,0,0,0.5)]" : "",
       ].join(" ")}
+      style={color ? { backgroundColor: color } : undefined}
     >
-      <span
-        className="font-board font-bold text-board-char"
-        style={{
-          fontSize: "clamp(0.9rem, 4vw, 2.6rem)",
-          lineHeight: 1,
-          transform: `translateY(${half === "top" ? "25%" : "-25%"}) ${
-            flipped ? "rotateX(180deg)" : ""
-          }`,
-        }}
-      >
-        {char === " " ? " " : char}
-      </span>
+      {!color && (
+        <span
+          className="font-board font-bold text-board-char"
+          style={{
+            fontSize: "clamp(0.9rem, 4vw, 2.6rem)",
+            lineHeight: 1,
+            transform: `translateY(${half === "top" ? "25%" : "-25%"}) ${
+              flipped ? "rotateX(180deg)" : ""
+            }`,
+          }}
+        >
+          {char === " " ? " " : char}
+        </span>
+      )}
     </div>
   );
 }

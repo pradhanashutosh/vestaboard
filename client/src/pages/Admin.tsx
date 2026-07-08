@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BOARD_PRESETS,
+  COLOR_TILE_LIST,
   HAlign,
   VAlign,
   textToGrid,
@@ -10,8 +11,23 @@ import Board from "../components/Board";
 
 const MAX_CHARS = 2000;
 
+// Official Vestaboard glyphs beyond letters/numbers/punctuation — these are
+// real mechanical-flap characters (see shared/src/charset.ts), not emoji.
+const SYMBOLS = ["°", "❤", "■"];
+
+// Curated so most are single-codepoint (a couple, like flag/skin-tone
+// combos, would take 2+ tiles — kept simple ones here on purpose). These
+// aren't part of the real Vestaboard charset, so they crossfade instead of
+// mechanically flapping (see computeFlapQueue).
+const EMOJI_PALETTE = [
+  "😀", "😊", "😍", "😎", "🥳", "😢", "😡", "👍", "👎", "👏",
+  "🙌", "🎉", "🔥", "⭐", "💡", "⚡", "☀", "☁", "🌙",
+  "❄", "☔", "✅", "❌", "⚠", "🎂", "🍕", "☕", "🐶", "🚀",
+];
+
 export default function Admin() {
   const { status, board, setBoardPartial, clearBoard } = useSocket();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [text, setText] = useState(board.text);
   const [preset, setPreset] = useState("22x6");
@@ -88,6 +104,20 @@ export default function Admin() {
     clearBoard();
   }
 
+  function insertAtCursor(insert: string) {
+    const el = textareaRef.current;
+    const start = el?.selectionStart ?? text.length;
+    const end = el?.selectionEnd ?? text.length;
+    const next = (text.slice(0, start) + insert + text.slice(end)).slice(0, MAX_CHARS);
+    setText(next);
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      const pos = start + insert.length;
+      el.setSelectionRange(pos, pos);
+    });
+  }
+
   const statusColor =
     status === "connected"
       ? "bg-emerald-500"
@@ -132,6 +162,7 @@ export default function Admin() {
           </div>
           <textarea
             id="message"
+            ref={textareaRef}
             value={text}
             maxLength={MAX_CHARS}
             onChange={(e) => setText(e.target.value)}
@@ -139,6 +170,44 @@ export default function Admin() {
             placeholder="TYPE A MESSAGE..."
             className="w-full resize-none rounded-lg border border-gray-300 bg-white p-3 font-mono text-lg uppercase tracking-wide outline-none focus:border-gray-500 dark:border-gray-700 dark:bg-board-tile dark:text-board-char"
           />
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            {COLOR_TILE_LIST.map((c) => (
+              <button
+                key={c.char}
+                type="button"
+                title={c.label}
+                aria-label={`Insert ${c.label} tile`}
+                onClick={() => insertAtCursor(c.char)}
+                className="h-7 w-7 shrink-0 rounded-[3px] border border-black/20 shadow-sm dark:border-white/10"
+                style={{ backgroundColor: c.hex }}
+              />
+            ))}
+            <span className="mx-1 h-6 w-px shrink-0 bg-gray-300 dark:bg-gray-700" />
+            {SYMBOLS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                title="Vestaboard character"
+                onClick={() => insertAtCursor(s)}
+                className="shrink-0 rounded-md px-1.5 py-0.5 text-lg font-bold leading-none hover:bg-gray-200 dark:hover:bg-gray-800"
+              >
+                {s}
+              </button>
+            ))}
+            <span className="mx-1 h-6 w-px shrink-0 bg-gray-300 dark:bg-gray-700" />
+            {EMOJI_PALETTE.map((e) => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => insertAtCursor(e)}
+                className="shrink-0 rounded-md px-1 py-0.5 text-lg leading-none hover:bg-gray-200 dark:hover:bg-gray-800"
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+
           <div className="flex gap-3">
             <button
               onClick={handleSend}
